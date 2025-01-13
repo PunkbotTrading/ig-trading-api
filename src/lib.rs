@@ -4,3 +4,4 @@ pub mod rest_client;
 pub mod rest_models;
 pub mod rest_regex;
 pub mod streaming_api;
+pub mod streaming_models;

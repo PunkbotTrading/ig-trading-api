@@ -627,7 +627,7 @@ pub enum DealReason {
 }
 
 /// Deal status.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DealStatus {
     /// Accepted.
@@ -1511,7 +1511,7 @@ pub enum OrderType {
     Quote,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PositionStatus {
     Amended,
