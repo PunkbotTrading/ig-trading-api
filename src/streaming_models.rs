@@ -47,7 +47,7 @@ pub enum Direction {
 }
 
 /// Describes the error (or success) condition for the specified trading operation.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DealReason {
     /// The account is not enabled to trade.
