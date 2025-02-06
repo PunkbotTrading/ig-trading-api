@@ -925,7 +925,7 @@ pub struct TransactionHistoryGetRequest {
     /// Transaction type.
     pub r#type: Option<TransactionType>,
     /// Start date.
-    pub from: NaiveDateTime,
+    pub from: Option<NaiveDateTime>,
     /// End date (date without time refers to the end of that day).
     pub to: Option<NaiveDateTime>,
     /// Limits the timespan in seconds through to current time
@@ -940,16 +940,34 @@ pub struct TransactionHistoryGetRequest {
 /// Implement the ValidateRequest trait for the TransactionHistoryGetRequest struct.
 impl ValidateRequest for TransactionHistoryGetRequest {
     fn validate(&self) -> Result<(), Box<dyn Error>> {
-        // Check if the 'from' date is not greater than today.
-        if self.from > Utc::now().naive_utc() {
+        
+        // if from and to dates are None, we need max span seconds
+        if self.from.is_none() && self.to.is_none() {
+            if self.max_span_seconds.is_none() {
+                return Err(Box::new(ApiError {
+                    message: "If date range is not set, max span needs to be set.".to_string(),
+                }));
+            }
+        }
+        
+        if self.from.is_none() && self.max_span_seconds.is_none()
+        {
             return Err(Box::new(ApiError {
-                message: "'From' date cannot be greater than today.".to_string(),
-            }));
+                message: "At least from date needs to be set if max span is not set.".to_string(),
+            }));           
+        }
+
+        if let Some(from) = self.from {
+            if from > Utc::now().naive_utc() {
+                return Err(Box::new(ApiError {
+                    message: "'From' date cannot be greater than today.".to_string(),
+                }));               
+            }
         }
 
         // Check if the 'from' date is not greater than 'to'.
         if let Some(to) = self.to {
-            if self.from > to {
+            if self.from.unwrap() > to {
                 return Err(Box::new(ApiError {
                     message: "'From' date cannot be greater than 'to' date.".to_string(),
                 }));
