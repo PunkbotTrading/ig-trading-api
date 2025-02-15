@@ -940,7 +940,6 @@ pub struct TransactionHistoryGetRequest {
 /// Implement the ValidateRequest trait for the TransactionHistoryGetRequest struct.
 impl ValidateRequest for TransactionHistoryGetRequest {
     fn validate(&self) -> Result<(), Box<dyn Error>> {
-        
         // if from and to dates are None, we need max span seconds
         if self.from.is_none() && self.to.is_none() {
             if self.max_span_seconds.is_none() {
@@ -949,19 +948,18 @@ impl ValidateRequest for TransactionHistoryGetRequest {
                 }));
             }
         }
-        
-        if self.from.is_none() && self.max_span_seconds.is_none()
-        {
+
+        if self.from.is_none() && self.max_span_seconds.is_none() {
             return Err(Box::new(ApiError {
                 message: "At least from date needs to be set if max span is not set.".to_string(),
-            }));           
+            }));
         }
 
         if let Some(from) = self.from {
             if from > Utc::now().naive_utc() {
                 return Err(Box::new(ApiError {
                     message: "'From' date cannot be greater than today.".to_string(),
-                }));               
+                }));
             }
         }
 
@@ -1109,7 +1107,7 @@ pub struct Expiry {
 #[serde(rename_all = "camelCase")]
 pub struct InstrumentDetails {
     /// Chart code.
-    pub chart_code: String,
+    pub chart_code: Option<String>,
     /// Contract size.
     pub contract_size: String,
     /// True if controlled risk trades are allowed.
@@ -1259,9 +1257,7 @@ pub enum MarketOrderPreference {
 #[derive(Debug, Default)]
 pub struct MarketsGetRequest {
     /// The epics of the market to be retrieved, separated by a comma.
-    pub epics: Vec<String>,
-    /// Filter for the market details.
-    pub filter: Option<MarketDetailsFilterType>,
+    pub epic: String,
 }
 
 /// Implement the Serialize trait for the MarketsGetRequest struct.
@@ -1269,16 +1265,7 @@ impl Serialize for MarketsGetRequest {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         let mut state = serializer.serialize_struct("MarketsQuery", 2)?;
 
-        state.serialize_field("epics", &self.epics.join(","))?;
-
-        match self.filter.as_ref() {
-            Some(filter) => {
-                state.serialize_field("filter", filter)?;
-            }
-            None => {
-                state.serialize_field("marketIds", &None::<()>)?;
-            }
-        }
+        state.serialize_field("epic", &self.epic)?;
 
         state.end()
     }
@@ -1288,24 +1275,16 @@ impl Serialize for MarketsGetRequest {
 impl ValidateRequest for MarketsGetRequest {
     fn validate(&self) -> Result<(), Box<dyn Error>> {
         // Constraint: Size(min=1).
-        if self.epics.is_empty() {
+        if self.epic.is_empty() {
             return Err(Box::new(ApiError {
-                message: "The 'epics' field cannot be empty.".to_string(),
-            }));
-        }
-
-        // Constraint: Size(max=50).
-        if self.epics.len() > 50 {
-            return Err(Box::new(ApiError {
-                message: "The 'epics' field cannot be greater than 50.".to_string(),
+                message: "The 'epic' field cannot be empty.".to_string(),
             }));
         }
 
         // Constraint: Pattern(regexp="^([A-Z]+(?:\.[A-Z]+)*(?:,[A-Z]+(?:\.[A-Z]+)*)*)$").
-        let serialized_epics = self.epics.join(",");
-        if !EPICS_REGEX.is_match(&serialized_epics) {
+        if !EPICS_REGEX.is_match(&self.epic) {
             return Err(Box::new(ApiError {
-                message: format!("Epics field is invalid. Fields: {}", serialized_epics),
+                message: format!("Epics field is invalid. Fields: {}", self.epic),
             }));
         }
 
@@ -1318,7 +1297,7 @@ impl ValidateRequest for MarketsGetRequest {
 #[serde(rename_all = "camelCase")]
 pub struct MarketsGetResponse {
     /// Market details.
-    pub market_details: Vec<MarketDetails>,
+    pub market_details: Option<MarketDetails>,
 }
 
 impl ValidateResponse for MarketsGetResponse {}

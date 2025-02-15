@@ -182,20 +182,30 @@ impl RestApi {
 
         Ok((headers, markets))
     }
-    
+
     /// Returns the details of the given market.
     pub async fn markets_get(
         &self,
-        request: MarketsGetRequest
+        request: MarketsGetRequest,
     ) -> Result<(Value, MarketsGetResponse), Box<dyn Error>> {
-        let (header_map, response_value) = self.client.get("markets".to_string(), Some(2), &Some(request)).await?;
-        
+        request.validate()?;
+
+        let method = format!("{}/{}", "markets".to_string(), request.epic);
+        let (header_map, response_value) = self.client.get(method, Some(3), &None::<Empty>).await?;
+
         // convert the header_map to json.
         let headers: Value = headers_to_json(&header_map)?;
-        
-        // Convert the serde_json::Value response to MarketsGetResponse model.
-        let markets_response = MarketsGetResponse::from_value(&response_value)?;
-        
+
+        // Parse the response_value into a MarketDetails struct.
+        let market_details = match serde_json::from_value::<MarketDetails>(response_value) {
+            Ok(market_details) => Some(market_details),
+            Err(e) => {
+                return Err(Box::new(e));
+            }
+        };
+
+        let markets_response = MarketsGetResponse { market_details };
+
         Ok((headers, markets_response))
     }
 
