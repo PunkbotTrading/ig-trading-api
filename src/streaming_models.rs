@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct AffectedDeal {
     /// Deal identifier.
@@ -26,7 +26,7 @@ pub enum AffectedDealStatus {
 }
 
 /// Deal status.
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DealStatus {
     /// Accepted.
@@ -36,7 +36,7 @@ pub enum DealStatus {
 }
 
 /// Deal direction.
-#[derive(Debug, Default, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Default, Deserialize, Serialize, PartialEq, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Direction {
     /// Buy.
@@ -47,7 +47,7 @@ pub enum Direction {
 }
 
 /// Describes the error (or success) condition for the specified trading operation.
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum DealReason {
     /// The account is not enabled to trade.
@@ -190,7 +190,7 @@ pub enum DealReason {
     WrongSideOfMarket,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PositionStatus {
     Amended,
@@ -200,7 +200,7 @@ pub enum PositionStatus {
     PartiallyClosed,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Confirm {
     /// Affected deals.
@@ -248,7 +248,7 @@ pub struct Confirm {
 use chrono::{DateTime, Utc};
 
 /// Open Position Updates for an account (OPU)
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Opu {
     /// Deal direction.

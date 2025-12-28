@@ -408,7 +408,7 @@ pub struct AffectedDeal {
 }
 
 /// Affected deal status.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum AffectedDealStatus {
     /// Amended.
@@ -870,7 +870,7 @@ pub enum ActivityType {
 }
 
 /// Deal direction.
-#[derive(Debug, Default, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Default, Deserialize, Serialize, PartialEq, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Direction {
     /// Buy.
@@ -1401,7 +1401,7 @@ pub enum TrailingStopsPreference {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Market data.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct MarketData {
     /// Bid.
@@ -1444,7 +1444,7 @@ pub struct MarketData {
 }
 
 /// Describes the current status of a given market.
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum MarketStatus {
     // Closed.
@@ -1464,7 +1464,7 @@ pub enum MarketStatus {
 }
 
 /// Instrument type.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum InstrumentType {
     Binary,
@@ -1974,7 +1974,7 @@ pub struct PositionPutResponse {
 impl ValidateResponse for PositionPutResponse {}
 
 /// Position data.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PositionData {
     /// Size of the contract.
