@@ -1061,21 +1061,29 @@ pub struct DealingRule {
 #[serde(rename_all = "camelCase")]
 pub struct DealingRules {
     /// Controlled risk spacing.
-    pub controlled_risk_spacing: DealingRule,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub controlled_risk_spacing: Option<DealingRule>,
     /// Client's market order trading preference
-    pub market_order_preference: MarketOrderPreference,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub market_order_preference: Option<MarketOrderPreference>,
     /// Max stop or limit distance.
-    pub max_stop_or_limit_distance: DealingRule,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_stop_or_limit_distance: Option<DealingRule>,
     /// Min controlled risk stop distance.
-    pub min_controlled_risk_stop_distance: DealingRule,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_controlled_risk_stop_distance: Option<DealingRule>,
     /// Min deal size.
-    pub min_deal_size: DealingRule,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_deal_size: Option<DealingRule>,
     /// Min normal stop or limit distance.
-    pub min_normal_stop_or_limit_distance: DealingRule,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_normal_stop_or_limit_distance: Option<DealingRule>,
     /// Min step distance.
-    pub min_step_distance: DealingRule,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_step_distance: Option<DealingRule>,
     /// Trailing stops trading preference for the specified market.
-    pub trailing_stops_preference: TrailingStopsPreference,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub trailing_stops_preference: Option<TrailingStopsPreference>,
 }
 
 /// Deposit band.
@@ -1115,7 +1123,8 @@ pub struct InstrumentDetails {
     /// Country.
     pub country: Option<String>,
     /// Currencies.
-    pub currencies: Vec<Currency>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub currencies: Option<Vec<Currency>>,
     /// Instrument identifier.
     pub epic: String,
     /// Expiry.
@@ -1125,11 +1134,13 @@ pub struct InstrumentDetails {
     /// True if force open is allowed.
     pub force_open_allowed: bool,
     /// The limited risk premium.
-    pub limited_risk_premium: DealingRule,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub limited_risk_premium: Option<DealingRule>,
     /// Lot size.
     pub lot_size: f64,
     /// Margin deposit bands.
-    pub margin_deposit_bands: Vec<DepositBand>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub margin_deposit_bands: Option<Vec<DepositBand>>,
     /// Margin requirement factor.
     pub margin_factor: f64,
     /// Describes the dimension for a dealing rule value.
@@ -1149,7 +1160,8 @@ pub struct InstrumentDetails {
     /// Slippage factor details for a given market.
     pub slippage_factor: SlippageFactor,
     /// List of special information notices.
-    pub special_info: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub special_info: Option<Vec<String>>,
     /// For sprint markets only, the maximum value to be specified
     /// as the expiry of a sprint markets trade.
     pub sprint_markets_maximum_expiry_time: Option<f64>,
