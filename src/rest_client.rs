@@ -102,12 +102,18 @@ impl RestClient {
         common_headers.insert("Content-Type", "application/json; charset=UTF-8".parse()?);
         common_headers.insert("X-IG-API-KEY", config.api_key.as_str().parse()?);
 
-        // Create a new RestClient instance.
+        // Create a new RestClient instance with HTTP/2 and timeout configuration.
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .connect_timeout(std::time::Duration::from_secs(10))
+            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")
+            .build()?;
+
         let mut rest_client = Self {
             auth_headers: None,
             auto_login,
             base_url,
-            client: reqwest::Client::new(),
+            client,
             common_headers,
             config,
             lightstreamer_endpoint: "".to_string(),
