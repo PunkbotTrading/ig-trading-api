@@ -86,6 +86,14 @@ pub struct ApiConfig {
     pub username: String,
     /// Logging mechanism
     pub logger: LogType,
+    /// OAuth access token (if using existing session)
+    pub oauth_access_token: Option<String>,
+    /// OAuth refresh token (if using existing session)
+    pub oauth_refresh_token: Option<String>,
+    /// Lightstreamer endpoint from OAuth login
+    pub lightstreamer_endpoint_override: Option<String>,
+    /// Skip login and use existing OAuth tokens
+    pub use_existing_tokens: Option<bool>,
 }
 
 // Default constructor for ApiConfig
@@ -105,6 +113,10 @@ impl ApiConfig {
             streaming_api_max_connection_attempts: None,
             username: "".to_string(),
             logger: LogType::StdLogs,
+            oauth_access_token: None,
+            oauth_refresh_token: None,
+            lightstreamer_endpoint_override: None,
+            use_existing_tokens: None,
         }
     }
 }

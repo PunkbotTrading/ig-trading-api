@@ -106,7 +106,8 @@ impl RestClient {
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .connect_timeout(std::time::Duration::from_secs(10))
-            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36")
+            .user_agent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+            .http2_adaptive_window(true)
             .build()?;
 
         let mut rest_client = Self {
@@ -115,16 +116,45 @@ impl RestClient {
             base_url,
             client,
             common_headers,
-            config,
+            config: config.clone(),
             lightstreamer_endpoint: "".to_string(),
             refresh_token: None,
             session_version,
         };
 
-        // If auto_login is true, then login to the API.
-        if auto_login {
+        // Check if we should use existing OAuth tokens instead of logging in
+        if config.use_existing_tokens.unwrap_or(false)
+            && config.oauth_access_token.is_some()
+        {
+            // Use existing OAuth tokens (Session Version 3 format)
+            let mut auth_headers = HeaderMap::new();
+            auth_headers.insert(
+                "Authorization",
+                HeaderValue::from_str(&format!(
+                    "Bearer {}",
+                    config.oauth_access_token.as_ref().unwrap()
+                ))?,
+            );
+
+            let account_number = match config.execution_environment {
+                ExecutionEnvironment::Demo => config.account_number_demo.clone(),
+                ExecutionEnvironment::Live => config.account_number_live.clone(),
+            };
+
+            auth_headers.insert("IG-ACCOUNT-ID", HeaderValue::from_str(&account_number)?);
+
+            rest_client.auth_headers = Some(auth_headers);
+            rest_client.refresh_token = config.oauth_refresh_token.clone();
+
+            // Use provided lightstreamer endpoint or default
+            rest_client.lightstreamer_endpoint = config
+                .lightstreamer_endpoint_override
+                .unwrap_or_else(|| "".to_string());
+        }
+        else if auto_login {
+            // Normal login flow
             let _ = rest_client.login().await?;
-        };
+        }
 
         Ok(rest_client)
     }
