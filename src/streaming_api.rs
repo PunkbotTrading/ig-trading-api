@@ -85,15 +85,32 @@ impl StreamingApi {
             let _ = rest_api.client.login();
         }
 
-        // Get the CST and X-SECURITY-TOKEN values from the REST API session.
-        let (cst, x_security_token) = match StreamingApi::get_tokens(&rest_api) {
-            Ok(tokens) => tokens,
-            Err(e) => {
-                return Err(Box::<dyn Error>::from(format!(
-                    "Failed to get CST and X-SECURITY-TOKEN from REST API: {}",
-                    e
-                )));
-            }
+        // Determine the Lightstreamer password based on session type.
+        // OAuth (V3) sessions use "Bearer <access_token>" as the password.
+        // V2 sessions use "CST-<cst>|XST-<x_security_token>" as the password.
+        let use_oauth = rest_api.config.use_existing_tokens.unwrap_or(false)
+            && rest_api.config.oauth_access_token.is_some();
+
+        let ls_password = if use_oauth {
+            // OAuth path: use Bearer token as Lightstreamer password
+            let token = rest_api
+                .config
+                .oauth_access_token
+                .as_ref()
+                .ok_or("OAuth access token missing")?;
+            format!("Bearer {}", token)
+        } else {
+            // V2 session path: use CST/XST tokens
+            let (cst, x_security_token) = match StreamingApi::get_tokens(&rest_api) {
+                Ok(tokens) => tokens,
+                Err(e) => {
+                    return Err(Box::<dyn Error>::from(format!(
+                        "Failed to get CST and X-SECURITY-TOKEN from REST API: {}",
+                        e
+                    )));
+                }
+            };
+            format!("CST-{}|XST-{}", cst, x_security_token)
         };
 
         //
@@ -109,7 +126,7 @@ impl StreamingApi {
                 ExecutionEnvironment::Demo => Some(&rest_api.config.account_number_demo),
                 ExecutionEnvironment::Live => Some(&rest_api.config.account_number_live),
             },
-            Some(&format!("CST-{}|XST-{}", cst.to_string(), x_security_token)),
+            Some(&ls_password),
         )?;
 
         for subscription in subscriptions {
