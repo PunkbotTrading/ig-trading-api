@@ -1,5 +1,6 @@
 use crate::common::{ApiConfig, ExecutionEnvironment, LogType};
 use crate::rest_api::RestApi;
+use crate::rest_models::SessionDetailsGetRequest;
 use lightstreamer_client::ls_client::{LightstreamerClient, SubscriptionRequest, Transport};
 use lightstreamer_client::subscription::Subscription;
 use signal_hook::low_level::signal_name;
@@ -15,6 +16,7 @@ pub struct StreamingApi {
     ls_client: LightstreamerClient,
     max_connection_attempts: u64,
     pub subscription_sender: Sender<SubscriptionRequest>,
+    pub connected: Arc<Notify>,
 }
 
 impl StreamingApi {
@@ -30,7 +32,7 @@ impl StreamingApi {
         let mut retry_interval_milis: u64 = 0;
         let mut retry_counter: u64 = 0;
         while retry_counter < self.max_connection_attempts {
-            match self.ls_client.connect(Arc::clone(&shutdown_signal)).await {
+            match self.ls_client.connect(Arc::clone(&shutdown_signal), Arc::clone(&self.connected)).await {
                 Ok(_) => {
                     self.ls_client.disconnect().await;
                     break;
@@ -86,21 +88,37 @@ impl StreamingApi {
         }
 
         // Determine the Lightstreamer password based on session type.
-        // OAuth (V3) sessions use "Bearer <access_token>" as the password.
-        // V2 sessions use "CST-<cst>|XST-<x_security_token>" as the password.
+        // Both OAuth (V3) and V2 sessions use "CST-<cst>|XST-<x_security_token>" as the password.
+        // For OAuth sessions, we first call GET /session?fetchSessionTokens=true to exchange
+        // the OAuth access token for a CST and X-SECURITY-TOKEN that Lightstreamer accepts.
         let use_oauth = rest_api.config.use_existing_tokens.unwrap_or(false)
             && rest_api.config.oauth_access_token.is_some();
 
         let ls_password = if use_oauth {
-            // OAuth path: use Bearer token as Lightstreamer password
-            let token = rest_api
-                .config
-                .oauth_access_token
-                .as_ref()
-                .ok_or("OAuth access token missing")?;
-            format!("Bearer {}", token)
+            // OAuth path: exchange OAuth token for CST/XST via GET /session?fetchSessionTokens=true.
+            // IG's Lightstreamer adapter does not accept OAuth tokens directly.
+            let (headers, _) = rest_api
+                .session_get(Some(SessionDetailsGetRequest {
+                    fetch_session_tokens: true,
+                }))
+                .await
+                .map_err(|e| {
+                    format!(
+                        "Failed to fetch session tokens for Lightstreamer (OAuth path): {}",
+                        e
+                    )
+                })?;
+            let cst = headers["cst"]
+                .as_str()
+                .ok_or("CST not found in session response")?
+                .to_string();
+            let xst = headers["x-security-token"]
+                .as_str()
+                .ok_or("X-SECURITY-TOKEN not found in session response")?
+                .to_string();
+            format!("CST-{}|XST-{}", cst, xst)
         } else {
-            // V2 session path: use CST/XST tokens
+            // V2 session path: use CST/XST tokens from login response headers.
             let (cst, x_security_token) = match StreamingApi::get_tokens(&rest_api) {
                 Ok(tokens) => tokens,
                 Err(e) => {
@@ -145,6 +163,7 @@ impl StreamingApi {
             ls_client,
             max_connection_attempts,
             subscription_sender,
+            connected: Arc::new(Notify::new()),
         })
     }
 
