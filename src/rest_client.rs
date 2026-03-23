@@ -7,6 +7,7 @@ use reqwest::StatusCode;
 use serde::Serialize;
 use serde_json::{json, Value};
 use std::error::Error;
+use std::sync::{Arc, RwLock};
 
 /// Default session version if not explicitly set.
 const DEFAULT_SESSION_VERSION: usize = 2;
@@ -16,8 +17,9 @@ const DEFAULT_AUTO_LOGIN: bool = true;
 /// Struct to represent the REST API client.
 #[derive(Clone, Debug)]
 pub struct RestClient {
-    /// The API authentication headers.
-    pub auth_headers: Option<HeaderMap>,
+    /// The API authentication headers. Wrapped in Arc<RwLock<>> so the token can be
+    /// updated without requiring a mutable reference (e.g. from the token refresh loop).
+    pub auth_headers: Arc<RwLock<Option<HeaderMap>>>,
     /// Automatically log in to the API on instantiation and when the session expires.
     pub auto_login: bool,
     /// The API base URL based on the account type.
@@ -53,12 +55,13 @@ impl RestClient {
         }
         // Convert the body to a serde_json::Value.
         let body = serde_json::to_value(body)?;
+        let auth_headers = self.auth_headers.read().unwrap().clone().unwrap_or(HeaderMap::new());
 
         let response = self
             .client
             .post(&format!("{}/{}", &self.base_url, method))
             .json(&body)
-            .headers(self.auth_headers.clone().unwrap_or(HeaderMap::new()))
+            .headers(auth_headers)
             .headers(self.common_headers.clone())
             .header("Version", version)
             .header("_method", "DELETE".to_string())
@@ -111,7 +114,7 @@ impl RestClient {
             .build()?;
 
         let mut rest_client = Self {
-            auth_headers: None,
+            auth_headers: Arc::new(RwLock::new(None)),
             auto_login,
             base_url,
             client,
@@ -143,7 +146,7 @@ impl RestClient {
 
             auth_headers.insert("IG-ACCOUNT-ID", HeaderValue::from_str(&account_number)?);
 
-            rest_client.auth_headers = Some(auth_headers);
+            *rest_client.auth_headers.write().unwrap() = Some(auth_headers);
             rest_client.refresh_token = config.oauth_refresh_token.clone();
 
             // Use provided lightstreamer endpoint or default
@@ -180,11 +183,12 @@ impl RestClient {
         } else {
             format!("{}/{}?{}", &self.base_url, method, query_string)
         };
+        let auth_headers = self.auth_headers.read().unwrap().clone().unwrap_or(HeaderMap::new());
 
         let response = self
             .client
             .get(&url)
-            .headers(self.auth_headers.clone().unwrap_or(HeaderMap::new()))
+            .headers(auth_headers)
             .headers(self.common_headers.clone())
             .header("Version", api_version)
             .send()
@@ -266,7 +270,7 @@ impl RestClient {
                     }));
                 }
 
-                self.auth_headers = Some(auth_headers);
+                *self.auth_headers.write().unwrap() = Some(auth_headers);
 
                 // Deserialize the response body to a serde_json::Value.
                 let response_json: Value = response.json().await?;
@@ -347,7 +351,7 @@ impl RestClient {
 
                 auth_headers.insert("IG-ACCOUNT-ID", HeaderValue::from_str(&account_number)?);
 
-                self.auth_headers = Some(auth_headers);
+                *self.auth_headers.write().unwrap() = Some(auth_headers);
 
                 self.refresh_token = Some(login_response.oauth_token.refresh_token);
 
@@ -379,12 +383,13 @@ impl RestClient {
         body.validate()?;
         // Convert the body to a serde_json::Value.
         let body = serde_json::to_value(body)?;
+        let auth_headers = self.auth_headers.read().unwrap().clone().unwrap_or(HeaderMap::new());
 
         let response = self
             .client
             .post(&format!("{}/{}", &self.base_url, method))
             .json(&body)
-            .headers(self.auth_headers.clone().unwrap_or(HeaderMap::new()))
+            .headers(auth_headers)
             .headers(self.common_headers.clone())
             .header("Version", version.clone())
             .send()
@@ -408,6 +413,20 @@ impl RestClient {
         }
     }
 
+    /// Update the OAuth Bearer token in the stored auth headers.
+    /// Called by the trader's token refresh loop to keep the in-memory token in sync
+    /// with the latest value written to the database by the server.
+    pub fn update_oauth_token(&self, new_token: &str) -> Result<(), Box<dyn Error>> {
+        let mut headers_guard = self.auth_headers.write().unwrap();
+        if let Some(headers) = headers_guard.as_mut() {
+            headers.insert(
+                "Authorization",
+                HeaderValue::from_str(&format!("Bearer {}", new_token))?,
+            );
+        }
+        Ok(())
+    }
+
     /// Send a PUT request to the REST API.
     pub async fn put(
         &self,
@@ -419,13 +438,14 @@ impl RestClient {
         let version = version.unwrap_or(1).to_string();
         // Validate the body.
         body.validate()?;
+        let auth_headers = self.auth_headers.read().unwrap().clone().unwrap_or(HeaderMap::new());
 
         // Send the PUT request.
         let response = self
             .client
             .put(&format!("{}/{}", &self.base_url, method))
             .json(&body)
-            .headers(self.auth_headers.clone().unwrap_or(HeaderMap::new()))
+            .headers(auth_headers)
             .headers(self.common_headers.clone())
             .header("Version", version.clone())
             .send()
@@ -477,7 +497,7 @@ mod tests {
         let rest_client = RestClient::new(config).await.unwrap();
 
         // Make assertions about the returned `RestClient` object
-        assert_eq!(rest_client.auth_headers, None);
+        assert!(rest_client.auth_headers.read().unwrap().is_none());
         assert_eq!(rest_client.auto_login, false);
         assert_eq!(rest_client.base_url, "https://demo.example.com");
         assert_eq!(

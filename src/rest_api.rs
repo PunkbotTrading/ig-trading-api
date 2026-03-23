@@ -24,6 +24,11 @@ impl RestApi {
         })
     }
 
+    /// Update the OAuth Bearer token used for all subsequent REST requests.
+    pub fn update_oauth_token(&self, new_token: &str) -> Result<(), Box<dyn Error>> {
+        self.client.update_oauth_token(new_token)
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////////////
     //
     // ACCOUNT METHODS.

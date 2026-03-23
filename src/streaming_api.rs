@@ -172,8 +172,9 @@ impl StreamingApi {
         //
         // Get auth headers from the REST API session.
         //
-        let auth_headers = match rest_api.client.auth_headers {
-            Some(ref headers) => headers,
+        let auth_headers_guard = rest_api.client.auth_headers.read().unwrap();
+        let auth_headers = match auth_headers_guard.as_ref() {
+            Some(headers) => headers,
             None => {
                 return Err(Box::<dyn Error>::from(
                     "Client not authenticated, auth headers not found.",
