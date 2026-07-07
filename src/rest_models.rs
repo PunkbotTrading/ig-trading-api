@@ -1328,29 +1328,30 @@ pub enum RuleUnit {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MarketSnapshot {
-    /// Bid price.
-    pub bid: f64,
+    /// Bid price. Null when the market is closed.
+    pub bid: Option<f64>,
     /// Binary odds.
     pub binary_odds: Option<f64>,
     /// The number of points to add on each side of the market as an
-    /// additional spread when placing a guaranteed stop trade.
-    pub controlled_risk_extra_spread: f64,
+    /// additional spread when placing a guaranteed stop trade. Null for
+    /// markets that do not offer controlled-risk (guaranteed-stop) trades.
+    pub controlled_risk_extra_spread: Option<f64>,
     /// Number of decimal positions for market levels.
     pub decimal_places_factor: f64,
     /// Price delay.
     pub delay_time: f64,
-    /// Highest price on the day.
-    pub high: f64,
-    /// Lowest price on the day.
-    pub low: f64,
+    /// Highest price on the day. Null when the market is closed.
+    pub high: Option<f64>,
+    /// Lowest price on the day. Null when the market is closed.
+    pub low: Option<f64>,
     /// Describes the current status of a given market.
     pub market_status: MarketStatus,
-    /// Net price change on the day.
-    pub net_change: f64,
-    /// Offer price.
-    pub offer: f64,
-    /// Percentage price change on the day.
-    pub percentage_change: f64,
+    /// Net price change on the day. Null when the market is closed.
+    pub net_change: Option<f64>,
+    /// Offer price. Null when the market is closed.
+    pub offer: Option<f64>,
+    /// Percentage price change on the day. Null when the market is closed.
+    pub percentage_change: Option<f64>,
     /// Multiplying factor to determine actual pip value for the
     /// levels used by the instrument.
     pub scaling_factor: f64,
